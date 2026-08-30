@@ -16,16 +16,18 @@ Galaxy 태블릿에서 **충전기를 꽂아둔 채 배터리를 우회해 시�
 
 | 사실 | 근거 |
 |---|---|
-| 스위치는 `Settings.System.pass_through` (`0`/`1`) | [06](06-test-results.md) |
-| `1` 이면 진짜 바이패스. 8코어 포화 부하(1527 mA)에서도 배터리 전류 ≈ 0 | [09](09-final-results.md) |
-| 게임런처 등록도 포그라운드 조건도 불필요. 포그라운드가 무엇이든 걸린다 | [09](09-final-results.md) |
-| 쓰기에는 **shell UID 가 필요**. `WRITE_SETTINGS` 로는 불가 (AOSP 비공개 키 보호) | [11](11-write-path.md) |
-| **배터리 20% 이상**에서만 효과. 미만이면 값은 남되 무시되고 정상 충전 | [09](09-final-results.md) |
-| **재부팅하면 `0` 으로 초기화**된다 | [09](09-final-results.md) |
-| 값을 덮는 유일한 주체는 `com.samsung.android.game.gametools`, **게임의 포그라운드 전이 때만** | [12](12-trigger-matrix.md) |
-| 화면 끔/켬·잠금화면·앱 전환·홈·최근앱·알림창은 **전부 무해** | [12](12-trigger-matrix.md) |
-| 효과 수렴에 10~20초 (20% 문턱 근처에서는 4~5분) | [09](09-final-results.md) |
-| PD/PPS 고속 충전 협상이 전제. 소프트웨어로 우회 불가 | [01](01-feature-mechanics.md) |
+| 스위치는 `Settings.System.pass_through` (`0`/`1`) | [06](research/06-test-results.md) |
+| `1` 이면 진짜 바이패스. 8코어 포화 부하(1527 mA)에서도 배터리 전류 ≈ 0 | [09](research/09-final-results.md) |
+| 게임런처 등록도 포그라운드 조건도 불필요. 포그라운드가 무엇이든 걸린다 | [09](research/09-final-results.md) |
+| 쓰기에는 **shell UID 가 필요**. `WRITE_SETTINGS` 로는 불가 (AOSP 비공개 키 보호) | [11](research/11-write-path.md) |
+| **배터리 20% 이상**에서만 효과. 미만이면 값은 남되 무시되고 정상 충전 | [09](research/09-final-results.md) |
+| **재부팅하면 `0` 으로 초기화**된다 | [09](research/09-final-results.md) |
+| 값을 덮는 유일한 주체는 `com.samsung.android.game.gametools`, **게임의 포그라운드 전이 때만** | [12](research/12-trigger-matrix.md) |
+| 화면 끔/켬·잠금화면·앱 전환·홈·최근앱·알림창은 **전부 무해** | [12](research/12-trigger-matrix.md) |
+| 효과 수렴에 10~20초 (20% 문턱 근처에서는 4~5분) | [09](research/09-final-results.md) |
+| **화면을 끄고 10시간을 두어도 유지된다. 그동안 트리클 충전조차 없다** | [FIELD](FIELD.md) |
+| 유휴 바이패스의 표류는 약 20 mA — 밴드 10%p 를 내려오는 데 약 50시간 | [FIELD](FIELD.md) |
+| PD/PPS 고속 충전 협상이 전제. 소프트웨어로 우회 불가 | [01](research/01-feature-mechanics.md) |
 
 내부 동작 체인:
 ```
@@ -52,7 +54,7 @@ AdbMdns.kt     AdbBootstrap.kt       SelfSignedCertificate.kt
 
 앱이 자기 기기의 adbd 에 루프백으로 붙어 **명령 한 줄 실행하고 끊는다.** 같은 기기에서 검증된 코드다.
 
-### 왜 다른 방법이 아닌가 ([11](11-write-path.md))
+### 왜 다른 방법이 아닌가 ([11](research/11-write-path.md))
 
 | 대안 | 탈락 사유 |
 |---|---|
@@ -94,7 +96,9 @@ adb shell pm grant moe.qwreey.powerdirect android.permission.WRITE_SECURE_SETTIN
 
 기본값 **LOW = 70, HIGH = 80** (사용자 조절 가능).
 
-- 밴드 폭 10%p 면 플래핑이 없다. 70→80 충전은 약 13분 (1009 mAh / 4.6 A)
+- 밴드 폭 10%p 면 플래핑이 없다. 70→80 충전은 약 13분 (1009 mAh / 4.6 A).
+  반대 방향은 약 20 mA 로 표류하므로 **약 50시간** 걸린다 — 밴드는 심하게 비대칭이고,
+  그래서 실사용에서 플래핑은 일어날 수가 없다 ([FIELD.md](FIELD.md))
 - **안전 바닥을 앱에 넣을 필요는 없다.** 20% 미만에서는 펌웨어가 플래그를 무시하고 정상 충전한다
 - 삼성 **배터리 보호**(설정 > 배터리, 80% 상한)를 같이 켜두면 이중 안전장치가 된다.
   계층이 달라 충돌하지 않는다 (`mProtectionThreshold: 80`)
@@ -116,7 +120,7 @@ adb shell pm grant moe.qwreey.powerdirect android.permission.WRITE_SECURE_SETTIN
 | `ACTION_POWER_DISCONNECTED` | 매니페스트 | 서비스 종료 |
 | `ACTION_BATTERY_CHANGED` | **런타임만 가능** | 서비스가 구독. 잔량·전압·온도 변화마다 정책 평가 |
 
-**`ACTION_SCREEN_ON` 은 필요 없다** ([12](12-trigger-matrix.md)).
+**`ACTION_SCREEN_ON` 은 필요 없다** ([12](research/12-trigger-matrix.md)).
 
 게임 세션 종료가 유일한 외부 간섭인데, `BATTERY_CHANGED` 가 주기적으로 오므로 그때 값을 확인해
 재적용하면 자연히 복구된다. **게임 감지를 위해 `UsageStatsManager` 를 붙일 필요가 없다.**
@@ -179,6 +183,9 @@ adb shell pm grant moe.qwreey.powerdirect android.permission.WRITE_SECURE_SETTIN
 
 ## 11. 남은 미확인
 
-- 배터리 80%+ 고잔량에서의 거동 (측정 구간은 20~39%)
-- 장시간 상시 바이패스의 발열·안전성
+- **`low` 에 닿았을 때 충전이 실제로 재개되는가.** 짧은 창에서 가역성은 확인됐지만
+  ([09](research/09-final-results.md)), 장시간 표류 끝에 자연스럽게 밟는 경로로는 아직 못 봤다.
+  아래쪽 변이 약 50시간이라 관측에 시간이 걸린다 ([FIELD.md](FIELD.md))
+- 장시간 상시 바이패스의 **발열** — 거동 자체는 10시간 확인됨 ([FIELD.md](FIELD.md))
+- 80% **초과** 고잔량에서의 거동 (측정 구간이 20~39% 에서 80% 근방까지 넓어졌다)
 - 다른 기기/One UI 버전에서의 재현성

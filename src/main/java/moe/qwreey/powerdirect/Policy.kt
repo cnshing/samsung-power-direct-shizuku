@@ -25,7 +25,18 @@ class Prefs(context: Context) {
         get() = runCatching { Mode.valueOf(sp.getString("mode", null) ?: "") }.getOrDefault(Mode.Auto)
         set(v) = sp.edit().putString("mode", v.name).apply()
 
-    /** 이 아래로 떨어지면 다시 충전한다. */
+    /**
+     * 이 아래로 떨어지면 다시 충전한다.
+     *
+     * 밴드는 **심하게 비대칭**이라는 것을 알고 조절해야 한다. 올라가는 쪽은 4.6 A 라
+     * 10%p 에 약 13분이지만, 내려가는 쪽은 유휴 바이패스 표류가 약 20 mA 뿐이라
+     * 같은 10%p 에 **약 50시간** 걸린다 (`docs/FIELD.md`, 화면 끄고 10시간에 2%p 실측).
+     *
+     * 그래서 [high] 와의 간격을 좁혀도 플래핑이 생기지 않는다 — 아래쪽 변이 이렇게 느리면
+     * 왕복 자체가 이틀에 한 번이다. 반대로 간격을 넓히면 충전 재개가 며칠에 한 번이 되어
+     * **정책이 제대로 도는지 확인하는 데만 며칠이 걸린다.** 시험할 때는 이 값을 현재 잔량
+     * 바로 아래로 올려 경계를 인위적으로 밟는 편이 낫다.
+     */
     var low: Int
         get() = sp.getInt("low", 65)
         set(v) = sp.edit().putInt("low", v.coerceIn(FLOOR, 95)).apply()

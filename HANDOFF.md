@@ -3,7 +3,7 @@
 Galaxy 태블릿에서 삼성의 우회충전(배터리를 전류 경로에서 빼고 충전기가 시스템을 직접 먹이는 것)을
 게임이 아닐 때도 유지하는 앱. **동작한다.** 조사와 핵심 구현은 끝났다.
 
-## 상태 (2026-08-30)
+## 상태 (2026-08-31)
 
 실기기 Galaxy Tab S9+ / Android 16 / One UI 8 에서 끝에서 끝까지 검증됐다.
 
@@ -12,6 +12,8 @@ Galaxy 태블릿에서 삼성의 우회충전(배터리를 전류 경로에서 �
 - **재부팅 후 사용자 개입 없이 스스로 복구한다** (실측: `[boot_completed] agent launched`)
 - 8코어 포화 부하에서도 배터리 전류 0 — 진짜 바이패스다
 - 퀵세팅 타일과 홈 위젯으로 앱을 열지 않고 자동 ↔ 끔을 뒤집을 수 있다
+- **화면을 끄고 10시간을 방치해도 유지된다.** 그동안 잔량이 2%p 내려갔다 — 트리클 충전조차
+  없다는 뜻이다 ([docs/FIELD.md](docs/FIELD.md))
 
 ## 먼저 읽을 것
 
@@ -19,7 +21,8 @@ Galaxy 태블릿에서 삼성의 우회충전(배터리를 전류 경로에서 �
 |---|---|
 | **[docs/AGENT.md](docs/AGENT.md)** | **에이전트 구조와 함정 5개.** 에이전트를 건드리기 전에 반드시 |
 | [docs/SPEC.md](docs/SPEC.md) | 확정 사실, 아키텍처 결정과 그 근거, 정책 |
-| [docs/research/](docs/research/) | 조사 기록 12편. 평소엔 볼 필요 없다 |
+| [docs/FIELD.md](docs/FIELD.md) | 완성된 앱의 장기 실사용 관측. 새 실측은 여기 쌓는다 |
+| [docs/research/](docs/research/) | 구현 이전의 조사 기록 12편. 평소엔 볼 필요 없다 |
 
 한 줄 요약: `settings put system pass_through 1` 이면 우회충전이 걸린다. **단 shell UID 가 필요하다** —
 `WRITE_SETTINGS` 로는 안 되고(AOSP 비공개 키 보호), Shizuku 는 재부팅 후 자동 시작이 root 전용이라
@@ -51,27 +54,19 @@ shell UID 의 브로드캐스트는 버려진다 (탭은 앱이 만든 PendingIn
 `cmd statusbar expand-settings` 로 그늘을 연 뒤 `cmd statusbar click-tile` 해야 한다 —
 그늘이 닫혀 있으면 타일 서비스가 바인드되어 있지 않아 클릭이 큐에 쌓였다가 나중에 터진다.
 
-## 다음 작업 — 문서
+## 다음 작업
 
-**레포에 README 가 없다.** 지금 있는 문서는 전부 만드는 사람을 위한 것이다 —
-이 문서와 `docs/SPEC.md` · `docs/AGENT.md` · `docs/research/`. 쓰는 사람이 읽을 것이 없다.
-
-- **`README.md` / `README-kr.md`** — 무엇을 하는 앱인지, 설치와 최초 1회 `pm grant`,
-  밴드 기본값(65/75)과 상한이 80 이 아니라 75 인 이유, 타일과 위젯.
-  경고 문구는 새로 쓸 필요가 없다. `docs/SPEC.md` **9장이 애초에 그 용도로 써둔 것**이다
-- 초안이 로컬에 있다 (`README-ignoreme.md` · `README-kr-ignoreme.md`, 전역 gitignore 라
-  커밋되지 않는다). **타일과 위젯이 빠져 있으니 거기만 채우면 된다**
-- `docs/research/README.md` 는 조사 기록의 색인이지 프로젝트 README 가 아니다. 헷갈리지 말 것
-
-문서에 무엇을 적을지는 대체로 코드 주석과 `docs/` 에 이미 있다. 없는 것은 **쓰는 사람의
-관점**뿐이다 — 왜 이걸 깔아야 하는지, 깔면 무엇을 감수하는지, 뭔가 이상하면 어떻게 하는지
-(답은 늘 "재부팅하세요" 다).
-
-## 그 밖에 남은 것
-
-- 장기 실사용 관측 — 발열, 실제 수명 효과. `docs/measure-phase.sh` 로 전류를 잰다
+- **`low` 에 닿았을 때 충전이 재개되는지 확인.** 유일하게 남은 정책 경로다. 표류가 약 20 mA
+  라 75 → 65 에 **약 50시간** 걸린다 — 그냥 꽂아두고 기다리거나, `low` 를 현재 잔량 바로
+  아래로 올려 인위적으로 밟아야 한다 ([docs/FIELD.md](docs/FIELD.md))
+- 장시간 바이패스의 **발열**. `docs/measure-phase.sh` 로 전류를, `dumpsys battery` 로 온도를 잰다
 - 다른 기기 / One UI 버전에서의 재현성
-- `docs/SPEC.md` 11장의 미확인 항목 (고잔량 거동 등)
+- `docs/SPEC.md` 11장의 나머지 미확인 항목
+
+문서는 갖춰졌다 — `README.md` / `README-kr.md` (쓰는 사람), 이 문서와 `docs/` (만드는 사람).
+새 실측은 `docs/FIELD.md` 에 쌓는다. `docs/research/` 는 구현 이전의 조사이고 정정 외에는
+건드리지 않는다. **`docs/research/README.md` 는 조사 기록의 색인이지 프로젝트 README 가
+아니다** — 루트에 진짜 README 가 생겼으니 더 헷갈리기 쉽다.
 
 ## 라이선스
 

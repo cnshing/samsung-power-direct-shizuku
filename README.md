@@ -30,8 +30,9 @@ This is not an official feature, and it is not a magic battery saver. Before you
   normally — so you can never get stranded on a flat battery.
 - **`Settings.System.pass_through` is not a public Samsung interface.** It can be
   removed or changed by any One UI update, without warning.
-- **Nobody has measured how much this actually helps.** The mechanism is verified; the
-  long-term benefit is not.
+- **Nobody has measured how much this actually helps.** Charging really does stop — that
+  part is measured. Whether it adds up to meaningfully more battery life over years is
+  still nobody's data.
 - **It needs shell privileges,** which it borrows from your own device's ADB. That means
   wireless debugging gets turned on while it works. See [How it works](#how-it-works).
 - Recovery, if anything ever looks wrong, is **reboot**. `pass_through` resets to `0` on
@@ -59,6 +60,31 @@ there first, hold at 80 and trickle-charge, and the battery would never leave th
 current path. Intervening below that is what makes the real bypass happen.
 
 Unplugged, the app does nothing at all.
+
+### What this looks like in practice
+
+The band is steeply asymmetric. Charging up runs at about 4.6 A; drifting down under
+bypass runs at about 20 mA — the residual measured over a 10-hour plugged-in, screen-off
+idle test, which lost 2 percentage points.
+
+| Direction | Current | 10 points takes |
+|---|---|---|
+| 65 → 75 (charging) | ~4.6 A | **~13 minutes** |
+| 75 → 65 (drifting under bypass) | ~20 mA | **~50 hours** |
+
+So a docked tablet spends nearly all of its plugged-in time with the battery out of the
+current path, topping up for a quarter of an hour every couple of days. Under load the
+drift is faster.
+
+The bypass holds with the screen off — ten hours in that test, with no sign of an upper
+limit. And it isn't trickle charging: the level fell *below 80%*, which is exactly where
+Samsung's own Battery protection would have topped it back up had any current been
+reaching the battery at all.
+
+One path is still unverified in real use: that charging actually resumes on its own when
+the level reaches `low`. Reversibility is verified over short windows, but at 20 mA the
+band takes two days to cross, so nobody has yet watched it happen naturally. If it ever
+did fail, the 20% firmware floor still takes over.
 
 ### Modes
 
@@ -142,6 +168,7 @@ Written in Korean.
 | [HANDOFF.md](HANDOFF.md) | Current state, dev environment, debugging commands |
 | [docs/AGENT.md](docs/AGENT.md) | Agent architecture and five traps worth knowing before touching it |
 | [docs/SPEC.md](docs/SPEC.md) | Established facts, architecture decisions and their reasoning |
+| [docs/FIELD.md](docs/FIELD.md) | Long-run field observations from the finished app |
 | [docs/research/](docs/research/) | 12 research notes — every fact above traced to a measurement |
 
 ## Building
