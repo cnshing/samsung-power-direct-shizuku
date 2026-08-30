@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- 앱이 자기 기기의 adbd 에 루프백으로 붙는다. 안드로이드는 그것도 네트워킹으로 센다. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!--
+        일반 앱에 부여되지 않는 권한이고, 그게 정상이다.
+        최초 1회 데스크탑에서 `pm grant` 로 준다. 이게 있어야 앱이 재부팅 후에도
+        무선 디버깅을 스스로 켜고 ADB 페어링 만료를 막을 수 있다.
+    -->
+    <uses-permission
+        android:name="android.permission.WRITE_SECURE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
+
+    <!-- 재부팅하면 pass_through 가 0 으로 초기화된다. 복구하려면 부팅을 알아야 한다. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- 바이패스가 켜져 있다는 것과 페어링 코드 입력을 알림으로 알린다. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.PowerDirect">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <!--
+            정책을 실제로 돌리는 곳. 브로드캐스트 리시버의 goAsync 예산으로는
+            ADB 왕복을 감당하지 못한다. PolicyJobService 의 주석 참조.
+        -->
+        <service
+            android:name=".PolicyJobService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+
+        <receiver
+            android:name=".PolicyReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.POWER_CONNECTED" />
+                <action android:name="android.intent.action.POWER_DISCONNECTED" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="moe.qwreey.powerdirect.CHECK" />
+                <action android:name="moe.qwreey.powerdirect.STOP" />
+                <action android:name="moe.qwreey.powerdirect.PAIR" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>
