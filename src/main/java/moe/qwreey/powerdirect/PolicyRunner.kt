@@ -91,6 +91,9 @@ object PolicyRunner {
         RunLog.append(context, "[$trigger] $outcome")
 
         notify(context, outcome)
+        // 잡이 끝났으니 타일과 위젯이 방금의 결과를 그리게 한다. 둘 다 스스로 알 방법이
+        // 없다 — 에이전트가 pass_through 를 쓰는 것은 앱 밖에서 일어나는 일이다.
+        SurfaceState.refreshAll(context)
         schedule(context, if (outcome.error != null) RETRY_MILLIS else WATCHDOG_MILLIS)
         outcome
     }
@@ -123,6 +126,7 @@ object PolicyRunner {
         Agent.stop(context)
         cancel(context)
         clearNotification(context)
+        SurfaceState.refreshAll(context)
         RunLog.append(context, "[stop] agent asked to exit")
     }
 

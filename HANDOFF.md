@@ -11,6 +11,7 @@ Galaxy 태블릿에서 삼성의 우회충전(배터리를 전류 경로에서 �
 - 에이전트가 배터리 밴드(기본 65/75)를 지키며 `Settings.System.pass_through` 를 쓴다
 - **재부팅 후 사용자 개입 없이 스스로 복구한다** (실측: `[boot_completed] agent launched`)
 - 8코어 포화 부하에서도 배터리 전류 0 — 진짜 바이패스다
+- 퀵세팅 타일과 홈 위젯으로 앱을 열지 않고 자동 ↔ 끔을 뒤집을 수 있다
 
 ## 먼저 읽을 것
 
@@ -24,23 +25,47 @@ Galaxy 태블릿에서 삼성의 우회충전(배터리를 전류 경로에서 �
 `WRITE_SETTINGS` 로는 안 되고(AOSP 비공개 키 보호), Shizuku 는 재부팅 후 자동 시작이 root 전용이라
 탈락했다. 그래서 `~/Projects/lan-mouse-android` 의 자체 ADB 구현을 이식했다.
 
-## 다음 작업 — 퀵세팅 타일과 홈 위젯
+## 표면 — 퀵세팅 타일과 홈 위젯
 
-지금 세션에서 하지 않은 이유는 위험해서가 아니라 **개념적으로 분리돼 있어서**다.
-핵심 동작은 이미 끝났고, 이 둘은 그 위에 얹는 표면일 뿐이다.
+`BypassTileService.kt` · `StatusWidget.kt` · `SurfaceState.kt`. 실기기에서 왕복 검증됐다
+(타일 탭 → `agent.conf` 갱신 → 한 주기 안에 `pass_through` 반영 → 타일·위젯이 결과를 그림).
 
-필요한 것:
+둘 다 하는 일은 같다 — `Prefs` 를 바꾸고, 세대를 올리고, `Agent.writeConfig` 로 넘기고,
+`PolicyJobService` 를 하나 던진다. **에이전트를 직접 건드리지 않는다.** 그 판단은
+`SurfaceState.toggle` 한 곳에만 있다.
 
-- **퀵세팅 타일** — 탭하면 자동 ↔ 끔. 상태(바이패스 중/충전 중/에이전트 죽음)를 아이콘과 라벨로.
-  `lan-mouse-android` 의 `AgentTileService.kt` 가 패턴 참고용
-- **홈 위젯** — 잔량, 배터리 전류, 모드, 에이전트 생존. `AgentWidget.kt` 참고
-- 둘 다 `Prefs` 를 바꾸고 `Agent.writeConfig` 를 부르면 끝난다. **에이전트를 직접 건드리지 말 것**
+건드리기 전에 알아둘 것 두 가지:
 
-지켜야 할 규칙 두 가지 (이유는 `docs/AGENT.md`):
+- **타일의 on/off 는 사용자가 켜 둔 것이지 지금 일어나는 일이 아니다.** 자동 모드에서 잔량이
+  밴드 아래면 켜 둔 채로 정상 충전하는 것이 정상인데, 그때 타일을 꺼진 것으로 그리면 한 번 더
+  눌러 진짜로 꺼버리게 된다. 실제 상태는 부제와 위젯 상태 줄이 말한다
+- **위젯은 깨우지 않는 알람(`ELAPSED_REALTIME`)으로 60초마다 갱신한다.** `updatePeriodMillis`
+  하한이 30분이라 전류에는 못 쓰고 `ACTION_BATTERY_CHANGED` 는 매니페스트로 못 받는다.
+  깨우지 않는 알람은 기기가 이미 깨어 있을 때만 발화하고, 위젯은 화면이 켜져 있을 때만 보인다 —
+  두 조건이 겹치므로 보이는 동안만 갱신되고 잠든 동안은 공짜다. `docs/AGENT.md` 가 알람을
+  걷어낸 것은 **정책**을 알람에 맡기지 말라는 뜻이고, 이건 늦어도 잘못될 것이 없다
 
-1. **생존 판정을 새로 만들지 말 것.** `Agent.isAlive` 는 표시 전용, 되살릴지는 `ensureRunning` 이
-   혼자 정한다. 호출하는 쪽에 게이트를 두면 같은 버그가 네 번째로 재발한다
-2. **에이전트가 쓰는 파일을 앱 밖에서 만들지 말 것.** shell 이 만든 파일은 앱이 읽지 못한다
+`adb shell am broadcast` 로는 위젯 탭을 흉내 낼 수 없다. 리시버가 `exported="false"` 라
+shell UID 의 브로드캐스트는 버려진다 (탭은 앱이 만든 PendingIntent 라 앱 UID 로 발사된다).
+`adb shell input tap` 으로 실제 위젯을 누르거나, 타일은
+`cmd statusbar expand-settings` 로 그늘을 연 뒤 `cmd statusbar click-tile` 해야 한다 —
+그늘이 닫혀 있으면 타일 서비스가 바인드되어 있지 않아 클릭이 큐에 쌓였다가 나중에 터진다.
+
+## 다음 작업 — 문서
+
+**레포에 README 가 없다.** 지금 있는 문서는 전부 만드는 사람을 위한 것이다 —
+이 문서와 `docs/SPEC.md` · `docs/AGENT.md` · `docs/research/`. 쓰는 사람이 읽을 것이 없다.
+
+- **`README.md` / `README-kr.md`** — 무엇을 하는 앱인지, 설치와 최초 1회 `pm grant`,
+  밴드 기본값(65/75)과 상한이 80 이 아니라 75 인 이유, 타일과 위젯.
+  경고 문구는 새로 쓸 필요가 없다. `docs/SPEC.md` **9장이 애초에 그 용도로 써둔 것**이다
+- 초안이 로컬에 있다 (`README-ignoreme.md` · `README-kr-ignoreme.md`, 전역 gitignore 라
+  커밋되지 않는다). **타일과 위젯이 빠져 있으니 거기만 채우면 된다**
+- `docs/research/README.md` 는 조사 기록의 색인이지 프로젝트 README 가 아니다. 헷갈리지 말 것
+
+문서에 무엇을 적을지는 대체로 코드 주석과 `docs/` 에 이미 있다. 없는 것은 **쓰는 사람의
+관점**뿐이다 — 왜 이걸 깔아야 하는지, 깔면 무엇을 감수하는지, 뭔가 이상하면 어떻게 하는지
+(답은 늘 "재부팅하세요" 다).
 
 ## 그 밖에 남은 것
 

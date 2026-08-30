@@ -36,6 +36,14 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!--
+                퀵세팅 타일 롱탭이 도착하는 곳. 이 필터가 없으면 안드로이드는 앱 정보 화면을
+                열어버린다 — 설명해야 할 것이 그쪽에는 하나도 없다.
+            -->
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
         </activity>
         <!--
             정책을 실제로 돌리는 곳. 브로드캐스트 리시버의 goAsync 예산으로는
@@ -45,6 +53,40 @@
             android:name=".PolicyJobService"
             android:exported="false"
             android:permission="android.permission.BIND_JOB_SERVICE" />
+
+        <!--
+            퀵세팅 타일. 탭 = 자동 ↔ 끔, 롱탭 = 앱.
+            exported 여야 한다 — 시스템 UI 가 다른 프로세스에서 바인드한다.
+        -->
+        <service
+            android:name=".BypassTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_notification"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <!--
+            홈 위젯. 잔량·전류·상태를 보여주고 탭하면 타일과 같은 일을 한다.
+            APPWIDGET_UPDATE 는 시스템이 보내므로 exported 가 아니어도 도착한다.
+        -->
+        <receiver
+            android:name=".StatusWidget"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="moe.qwreey.powerdirect.WIDGET_TOGGLE" />
+                <action android:name="moe.qwreey.powerdirect.WIDGET_TICK" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info" />
+        </receiver>
 
         <receiver
             android:name=".PolicyReceiver"

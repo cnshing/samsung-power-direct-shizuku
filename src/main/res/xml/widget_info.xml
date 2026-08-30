@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    기본 2x1. 세 줄이 들어가는 가장 작은 크기다.
+    한 칸까지 줄일 수 있고, 그때는 아이콘 색과 잔량만 남는다 — 그것으로도 지금
+    바이패스 중인지는 알 수 있다.
+
+    updatePeriodMillis 는 0 이다. 하한이 30분이라 전류를 보여주는 데에는 쓸모가 없고,
+    StatusWidget 이 깨우지 않는 알람으로 훨씬 촘촘히, 그러면서 더 싸게 갱신한다.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/widget_description"
+    android:initialLayout="@layout/widget"
+    android:minHeight="40dp"
+    android:minResizeHeight="40dp"
+    android:minResizeWidth="40dp"
+    android:minWidth="110dp"
+    android:previewImage="@drawable/ic_notification"
+    android:resizeMode="horizontal|vertical"
+    android:targetCellHeight="1"
+    android:targetCellWidth="2"
+    android:updatePeriodMillis="0"
+    android:widgetCategory="home_screen" />

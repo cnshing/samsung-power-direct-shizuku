@@ -1,3 +1,14 @@
 <resources>
     <string name="app_name">Power Direct</string>
+
+    <string name="tile_description">Let the charger feed the system directly instead of cycling the battery. Tap to switch between Auto and Off.</string>
+    <string name="widget_description">Battery level, current, and what the bypass is doing. Tap to switch between Auto and Off.</string>
+
+    <!-- 타일 부제와 위젯 상태 줄. 짧아야 한다 — 타일 폭을 넘으면 잘린다. -->
+    <string name="status_not_set_up">Not set up</string>
+    <string name="status_off">Off</string>
+    <string name="status_agent_stopped">Agent stopped</string>
+    <string name="status_unplugged">Unplugged</string>
+    <string name="status_bypassing">Bypassing</string>
+    <string name="status_charging">Charging</string>
 </resources>

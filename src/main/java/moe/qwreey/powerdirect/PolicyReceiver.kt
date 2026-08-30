@@ -27,6 +27,7 @@ class PolicyReceiver : BroadcastReceiver() {
                 PolicyRunner.clearNotification(app)
                 PolicyRunner.endSession(app)
                 PolicyRunner.schedule(app)
+                SurfaceState.refreshAll(app)
                 RunLog.append(app, "[unplugged] wireless debugging restored")
                 return
             }

@@ -137,11 +137,20 @@ adb shell pm grant moe.qwreey.powerdirect android.permission.WRITE_SECURE_SETTIN
 | 요소 | 내용 |
 |---|---|
 | 메인 화면 | 모드 선택, LOW/HIGH 슬라이더, 현재 잔량·전류·온도, 바이패스 활성 여부 |
-| 퀵세팅 타일 | 탭 = 자동↔끔, 롱탭 = 앱 열기 |
-| 홈 위젯 | 잔량·전류·모드 |
+| 퀵세팅 타일 | 탭 = 자동↔끔, 롱탭 = 앱 열기 (`BypassTileService.kt`) |
+| 홈 위젯 | 잔량·전류·상태·모드, 탭 = 자동↔끔 (`StatusWidget.kt`) |
 | 알림 (충전 중) | 상태 + 즉시 끄기 액션 |
 
 `lan-mouse-android` 의 `AgentTileService.kt` · `AgentWidget.kt` · `BootReceiver.kt` 패턴 재사용.
+
+타일과 위젯은 `SurfaceState.kt` 하나를 공유한다 — 상태를 읽는 것도 모드를 뒤집는 것도
+거기 한 곳에만 있다. 나눠 두면 "타일은 바이패스 중이라는데 위젯은 충전 중" 이 생기고,
+그때 어느 쪽이 맞는지 알아낼 방법이 없다.
+
+**타일의 on/off 는 사용자가 켜 둔 것이지 지금 일어나는 일이 아니다.** 자동 모드에서 잔량이
+밴드 아래면 켜 둔 채로 정상 충전하는 것이 정상인데, 그때 타일을 꺼진 것으로 그리면 사용자가
+한 번 더 눌러 진짜로 꺼버린다. 실제 상태는 부제(`Bypassing · 80%`)가 말한다.
+자세한 것은 [../HANDOFF.md](../HANDOFF.md) 의 "표면".
 
 ## 8. 안전
 
@@ -162,10 +171,10 @@ adb shell pm grant moe.qwreey.powerdirect android.permission.WRITE_SECURE_SETTIN
 
 | 단계 | 내용 |
 |---|---|
-| 1 | 프로젝트 생성 + `adb/` 패키지 이식. `settings put system pass_through 1` 한 줄 실행 확인 (**깨끗한 기기 상태 — `adb_allowed_connection_time` 을 기본값으로 되돌린 뒤 — 에서도 되는지 확인할 것**) |
-| 2 | 수동 토글 + 전류 표시 + 퀵세팅 타일 |
-| 3 | 밴드 정책 + 이벤트 배선 (`BOOT_COMPLETED`, `POWER_CONNECTED`, 포그라운드 서비스) |
-| 4 | 위젯, 설정 UI |
+| 1 | ✅ 프로젝트 생성 + `adb/` 패키지 이식. `settings put system pass_through 1` 한 줄 실행 확인 (**깨끗한 기기 상태 — `adb_allowed_connection_time` 을 기본값으로 되돌린 뒤 — 에서도 되는지 확인할 것**) |
+| 2 | ✅ 수동 토글 + 전류 표시 + 퀵세팅 타일 |
+| 3 | ✅ 밴드 정책 + 이벤트 배선 (`BOOT_COMPLETED`, `POWER_CONNECTED`). 포그라운드 서비스는 필요 없어졌다 — [AGENT.md](AGENT.md) |
+| 4 | ✅ 위젯, 설정 UI |
 | 5 | 장기 관측 로그 — 전류·온도·잔량을 남겨 실제 수명 효과 확인 |
 
 ## 11. 남은 미확인

@@ -2,9 +2,11 @@ package moe.qwreey.powerdirect
 
 import android.Manifest
 import android.app.Application
+import android.app.PendingIntent
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -42,6 +44,24 @@ class MainActivity : ComponentActivity() {
                 Surface(Modifier.fillMaxSize()) { Screen() }
             }
         }
+    }
+
+    companion object {
+        /**
+         * 사용자를 여기로 보내야 하는 모든 곳 — 타일, 위젯, 알림 — 이 쓴다.
+         *
+         * `FLAG_ACTIVITY_NEW_TASK` 가 붙어 있어야 한다. 부르는 쪽이 액티비티가 아니라
+         * 타일 서비스나 브로드캐스트 리시버라 시작할 태스크가 없다.
+         */
+        fun intent(context: Context): Intent =
+            Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+        fun pendingIntent(context: Context): PendingIntent = PendingIntent.getActivity(
+            context,
+            0,
+            intent(context),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
     }
 }
 
@@ -122,6 +142,7 @@ class MainViewModel(app: Application) : ViewModel() {
         prefs.bumpGeneration()
         // 에이전트가 권위다. 설정만 넘기면 다음 주기에 알아서 반영한다.
         Agent.writeConfig(context, prefs)
+        SurfaceState.refreshAll(context)
         refresh()
     }
 
@@ -132,6 +153,7 @@ class MainViewModel(app: Application) : ViewModel() {
         prefs.high = high.coerceAtLeast(prefs.low + 5)
         prefs.bumpGeneration()
         Agent.writeConfig(context, prefs)
+        SurfaceState.refreshAll(context)
         refresh()
     }
 
