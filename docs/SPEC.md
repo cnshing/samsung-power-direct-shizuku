@@ -1,7 +1,7 @@
 # samsung-power-direct — 구현 사양
 
 이 문서 하나만 읽고 구현할 수 있게 쓴다. 근거가 필요하면 각 항목의 링크를 따라가라.
-조사 기록은 `README.md` 의 문서 목록에 있다.
+조사 기록은 [research/README.md](research/README.md) 의 문서 목록에 있다.
 
 ---
 
@@ -159,7 +159,7 @@ adb shell pm grant moe.qwreey.powerdirect android.permission.WRITE_SECURE_SETTIN
 - 앱에 "끄고 나가기" 버튼 (값을 `0` 으로 되돌리고 종료)
 - 20% 미만에서는 펌웨어가 알아서 충전한다 — 방전으로 못 빠져나오는 상황은 없다
 
-## 9. 고지 (프로젝트화할 경우 README 에 넣을 것)
+## 9. 고지 ([../README.md](../README.md) 의 "Read this first" 에 실려 있다)
 
 > 목표는 배터리 수명을 조금이라도 늘리는 것이지 충전을 완벽히 차단하는 게 아니다.
 > · 완전 바이패스가 아닐 수 있다 (다른 기기에서 30~70 mA 잔류 보고가 있다. 이 기기는 −16 mA)
