@@ -33,8 +33,16 @@ This is not an official feature, and it is not a magic battery saver. Before you
 - **Nobody has measured how much this actually helps.** Charging really does stop — that
   part is measured. Whether it adds up to meaningfully more battery life over years is
   still nobody's data.
-- **It needs shell privileges,** which it borrows from your own device's ADB. That means
-  wireless debugging gets turned on while it works. See [How it works](#how-it-works).
+- **It needs shell privileges,** which it borrows from your own device's ADB — so
+  wireless debugging is on for the whole charging session, not just for a moment, and
+  the app sets pairing to never expire (`adb_allowed_connection_time = 0`; the stock
+  value is 7 days). Without that it would lose the ability to restore the bypass after a
+  reboot. While wireless debugging is on, **any host you have already paired with this
+  tablet can connect to it over the local network** — a stranger cannot start a new
+  pairing without the six-digit code, but an old laptop you paired once and forgot about
+  still counts. By default the app switches wireless debugging back off when you unplug;
+  the *Keep wireless debugging on after unplugging* option leaves it on permanently.
+  See [How it works](#how-it-works).
 - Recovery, if anything ever looks wrong, is **reboot**. `pass_through` resets to `0` on
   every boot, so the device heals itself even if you uninstall the app.
 
