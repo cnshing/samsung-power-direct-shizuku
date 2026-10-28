@@ -1,0 +1,78 @@
+name: Draft APK release
+run-name: Draft APK from ${{ inputs.ref || github.ref_name }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git SHA, branch, or tag to build (blank uses the selected branch's latest commit)
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  draft-release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out build source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+
+      - name: Resolve build metadata
+        id: build
+        run: |
+          sha="$(git rev-parse HEAD)"
+          short_sha="${sha:0:12}"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "short-sha=$short_sha" >> "$GITHUB_OUTPUT"
+          echo "apk=samsung-power-direct-arm64-v8a-${short_sha}-unsigned.apk" >> "$GITHUB_OUTPUT"
+          echo "tag=draft-${short_sha}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
+
+      - name: Install Devbox and the flake-based Android SDK
+        uses: jetify-com/devbox-install-action@8c6a66ed6273138b1915457069de78cb52fe3bd7 # v0.15.0
+        with:
+          devbox-version: 0.18.5
+          enable-cache: 'true'
+
+      - name: Build unsigned release APK
+        env:
+          APK_NAME: ${{ steps.build.outputs.apk }}
+        run: |
+          devbox run -- ./gradlew --no-daemon assembleRelease
+          devbox run -- unzip -Z1 build/outputs/apk/release/samsung-power-direct-release-unsigned.apk lib/arm64-v8a/libadbpairing.so
+          cp build/outputs/apk/release/samsung-power-direct-release-unsigned.apk "$RUNNER_TEMP/$APK_NAME"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: samsung-power-direct-arm64-v8a-${{ steps.build.outputs.short-sha }}-unsigned
+          path: ${{ runner.temp }}/${{ steps.build.outputs.apk }}
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: Create draft release with APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_SHA: ${{ steps.build.outputs.sha }}
+          SHORT_SHA: ${{ steps.build.outputs.short-sha }}
+          APK_NAME: ${{ steps.build.outputs.apk }}
+          RELEASE_TAG: ${{ steps.build.outputs.tag }}
+        run: |
+          printf 'Commit: %s\nABI: arm64-v8a\n\nUnsigned release APK; sign it before installation.\n' \
+            "$BUILD_SHA" > "$RUNNER_TEMP/release-notes.md"
+          release_url="$(gh release create "$RELEASE_TAG" "$RUNNER_TEMP/$APK_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --draft \
+            --target "$BUILD_SHA" \
+            --title "Power Direct ${SHORT_SHA} (arm64)" \
+            --notes-file "$RUNNER_TEMP/release-notes.md")"
+          printf '[Draft release](%s)\n\nCommit: `%s`\n\nABI: `arm64-v8a`\n' \
+            "$release_url" "$BUILD_SHA" >> "$GITHUB_STEP_SUMMARY"
