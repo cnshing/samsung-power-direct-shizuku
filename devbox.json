@@ -1,0 +1,26 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/main/.schema/devbox.schema.json",
+  "packages": [
+    "jdk@17",
+    "git@latest",
+    "unzip@latest",
+    "path:./nix/android-sdk#default"
+  ],
+  "env": {
+    "ANDROID_HOME": "$PWD/.devbox/nix/profile/default/libexec/android-sdk",
+    "ANDROID_SDK_ROOT": "$PWD/.devbox/nix/profile/default/libexec/android-sdk",
+    "GRADLE_USER_HOME": "$PWD/.devbox/gradle"
+  },
+  "shell": {
+    "init_hook": [
+      "export PATH=\"$ANDROID_HOME/cmake/3.22.1/bin:$PATH\"",
+      "export GRADLE_OPTS=\"${GRADLE_OPTS:+$GRADLE_OPTS }-Dorg.gradle.project.android.aapt2FromMavenOverride=$ANDROID_HOME/build-tools/35.0.0/aapt2\""
+    ],
+    "scripts": {
+      "build": "./gradlew assembleDebug",
+      "check": "./gradlew testDebugUnitTest lintDebug",
+      "install-apk": "./gradlew installDebug",
+      "clean": "./gradlew clean"
+    }
+  }
+}
